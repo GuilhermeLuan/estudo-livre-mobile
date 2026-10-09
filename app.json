@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ],
+    "scheme": "estudos-livre",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
