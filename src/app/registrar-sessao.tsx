@@ -1,9 +1,11 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Texto } from '@/components/ui/Texto';
 
 export default function RegistrarSessao() {
   return (
     <View>
-      <Text>Registrar sessão cronometrada</Text>
+      <Texto estilo="tituloH1">Registrar sessão cronometrada</Texto>
     </View>
   );
 }
