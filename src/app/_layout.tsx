@@ -9,9 +9,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { SQLiteProvider } from 'expo-sqlite';
 import { useEffect } from 'react';
 
 import { cores } from '@/constants/tema';
+import { NOME_BANCO, migrarBanco } from '@/services/database';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,7 +33,7 @@ export default function RootLayout() {
   if (!carregadas && !erro) return null;
 
   return (
-    <>
+    <SQLiteProvider databaseName={NOME_BANCO} onInit={migrarBanco}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.paper } }}
@@ -40,6 +42,6 @@ export default function RootLayout() {
         <Stack.Screen name="registrar-estudo" options={{ presentation: 'modal' }} />
         <Stack.Screen name="registrar-sessao" options={{ presentation: 'modal' }} />
       </Stack>
-    </>
+    </SQLiteProvider>
   );
 }
