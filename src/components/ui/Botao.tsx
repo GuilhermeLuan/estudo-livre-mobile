@@ -12,6 +12,8 @@ type Props = {
   variante?: VarianteBotao;
   tamanho?: TamanhoBotao;
   desabilitado?: boolean;
+  /** Só no variante discreto: link vermelho (ex.: "Remover etapa"). */
+  tom?: 'padrao' | 'perigo';
   style?: StyleProp<ViewStyle>;
 };
 
@@ -28,6 +30,7 @@ export function Botao({
   variante = 'primario',
   tamanho = 'padrao',
   desabilitado = false,
+  tom = 'padrao',
   style,
 }: Props) {
   const lista = tamanho === 'lista';
@@ -52,7 +55,7 @@ export function Botao({
         style,
       ]}
     >
-      <Texto estilo={estiloTexto} cor={corTexto[variante]}>
+      <Texto estilo={estiloTexto} cor={variante === 'discreto' && tom === 'perigo' ? cores.red : corTexto[variante]}>
         {rotulo}
       </Texto>
     </Pressable>
