@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { cores, espaco, raio, textos } from '@/constants/tema';
@@ -20,6 +20,7 @@ type Props =
 
 export function Campo(props: Props) {
   const [focado, setFocado] = useState(false);
+  const entradaRef = useRef<TextInput>(null);
   const { rotulo, valor, tipo } = props;
   const editavel = (tipo === 'texto' || tipo === 'areaDeTexto') && !props.desabilitado;
   const area = tipo === 'areaDeTexto';
@@ -39,8 +40,9 @@ export function Campo(props: Props) {
         </Texto>
       ) : null}
       {tipo === 'texto' || area ? (
-        <View style={caixa}>
+        <Pressable style={caixa} onPress={() => entradaRef.current?.focus()}>
           <TextInput
+            ref={entradaRef}
             value={valor}
             onChangeText={props.onChangeText}
             editable={editavel}
@@ -51,9 +53,9 @@ export function Campo(props: Props) {
             maxLength={props.maxLength}
             onFocus={() => setFocado(true)}
             onBlur={() => setFocado(false)}
-            style={[estilos.texto, area && { height: '100%', textAlignVertical: 'top' }, !editavel && { opacity: 0.6 }]}
+            style={[estilos.texto, area ? { textAlignVertical: 'top' } : { textAlignVertical: 'center' }, !editavel && { opacity: 0.6 }]}
           />
-        </View>
+        </Pressable>
       ) : (
         <Pressable
           accessibilityRole={tipo === 'selecao' ? 'button' : undefined}
@@ -83,7 +85,8 @@ const estilos = StyleSheet.create({
     paddingHorizontal: espaco[12],
     paddingVertical: 8,
   },
-  /** Foco: borda accent + halo accent-soft. */
-  foco: { borderColor: cores.accent, boxShadow: `0 0 0 3px ${cores.accentSoft}` },
-  texto: { flex: 1, color: cores.ink, padding: 0, ...textos.lista14 },
+  /** Foco: borda accent. Não use boxShadow aqui: no iOS ele remonta a view e o input perde o foco na hora (blur em loop). */
+  foco: { borderColor: cores.accent },
+  /** alignSelf: 'stretch' faz o input ocupar toda a altura da caixa; no iOS ele colapsava e não recebia toque. */
+  texto: { flex: 1, alignSelf: 'stretch', color: cores.ink, padding: 0, ...textos.lista14 },
 });
