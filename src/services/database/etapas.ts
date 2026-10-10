@@ -49,6 +49,10 @@ export async function criarEtapa(
   return r.lastInsertRowId;
 }
 
+/**
+ * Atualiza matéria e carga da etapa. Se a matéria mudou de chave e nenhuma outra etapa do ciclo
+ * mantém a chave antiga, os registros dela passam para a nova chave.
+ */
 export async function atualizarEtapa(
   db: SQLiteDatabase,
   id: number,
@@ -56,13 +60,44 @@ export async function atualizarEtapa(
   minutos: number,
 ): Promise<void> {
   const nome = materia.trim();
-  await db.runAsync(
-    'UPDATE etapas SET materia = ?, chave_materia = ?, minutos = ? WHERE id = ?',
-    nome,
-    normalizarMateria(nome),
-    minutos,
-    id,
-  );
+  const chave = normalizarMateria(nome);
+  await db.withTransactionAsync(async () => {
+    const antes = await db.getFirstAsync<{ ciclo_id: number; chave_materia: string }>(
+      'SELECT ciclo_id, chave_materia FROM etapas WHERE id = ?',
+      id,
+    );
+    if (!antes) return;
+    await db.runAsync(
+      'UPDATE etapas SET materia = ?, chave_materia = ?, minutos = ? WHERE id = ?',
+      nome,
+      chave,
+      minutos,
+      id,
+    );
+    if (antes.chave_materia === chave) {
+      // Só a grafia mudou: as outras etapas da mesma matéria mostram o mesmo nome.
+      await db.runAsync(
+        'UPDATE etapas SET materia = ? WHERE ciclo_id = ? AND chave_materia = ?',
+        nome,
+        antes.ciclo_id,
+        chave,
+      );
+      return;
+    }
+    const restante = await db.getFirstAsync<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM etapas WHERE ciclo_id = ? AND chave_materia = ?',
+      antes.ciclo_id,
+      antes.chave_materia,
+    );
+    if (restante?.n === 0) {
+      await db.runAsync(
+        'UPDATE registros SET chave_materia = ? WHERE ciclo_id = ? AND chave_materia = ?',
+        chave,
+        antes.ciclo_id,
+        antes.chave_materia,
+      );
+    }
+  });
 }
 
 /** Remove a etapa e recompacta as posições do ciclo. */
