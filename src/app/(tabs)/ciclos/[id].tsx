@@ -1,9 +1,11 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Texto } from '@/components/ui/Texto';
 
 export default function Ciclo() {
   return (
     <View>
-      <Text>Ciclo</Text>
+      <Texto estilo="tituloH1">Ciclo</Texto>
     </View>
   );
 }

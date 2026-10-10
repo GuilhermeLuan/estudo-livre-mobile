@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
@@ -23,11 +23,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font",
+      "expo-splash-screen"
     ],
     "scheme": "estudos-livre",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "backgroundColor": "#0b0f19"
   }
 }

@@ -1,9 +1,11 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Texto } from '@/components/ui/Texto';
 
 export default function NovoCiclo() {
   return (
     <View>
-      <Text>Novo ciclo</Text>
+      <Texto estilo="tituloH1">Novo ciclo</Texto>
     </View>
   );
 }

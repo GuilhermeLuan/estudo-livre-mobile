@@ -1,9 +1,11 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Texto } from '@/components/ui/Texto';
 
 export default function RegistrarEstudo() {
   return (
     <View>
-      <Text>Registrar estudo</Text>
+      <Texto estilo="tituloH1">Registrar estudo</Texto>
     </View>
   );
 }
