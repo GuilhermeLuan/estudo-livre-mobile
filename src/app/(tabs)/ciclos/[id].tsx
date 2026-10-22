@@ -38,7 +38,7 @@ export default function Ciclo() {
   const [remover, setRemover] = useState<{ etapa: Etapa; posicao: number } | null>(null);
   const [novaMateria, setNovaMateria] = useState('');
   const [novasHoras, setNovasHoras] = useState('');
-  const [excluindo, setExcluindo] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const carregar = useCallback(async () => {
     const [c, e] = await Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]);
@@ -70,7 +70,7 @@ export default function Ciclo() {
   const [ocupado, setOcupado] = useState(false);
   const travado = useRef(false);
 
-  async function executar(acao: () => Promise<void>, erro: string) {
+  async function executar(acao: () => Promise<void>, erro: string, recarregar = true) {
     if (travado.current) return;
     travado.current = true;
     setOcupado(true);
@@ -82,7 +82,7 @@ export default function Ciclo() {
       } catch {
         Alert.alert(erro, 'Tente novamente.');
       }
-      if (gravou) {
+      if (gravou && recarregar) {
         try {
           await carregar();
         } catch {
@@ -130,7 +130,7 @@ export default function Ciclo() {
           <Texto estilo="tituloH2">{`Volta ${ciclo?.voltaAtual ?? 1}`}</Texto>
           <Pilula texto={ciclo?.ativo ? 'Ciclo ativo' : 'Inativo'} cor={ciclo?.ativo ? 'verde' : 'neutra'} />
         </View>
-        <View style={estilos.acoes}>
+        <View style={estilos.acoesCiclo}>
           {ciclo && !ciclo.ativo ? (
             <Botao
               rotulo="Tornar ativo"
@@ -138,7 +138,7 @@ export default function Ciclo() {
               onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
             />
           ) : null}
-          <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setExcluindo(true)} />
+          <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setConfirmandoExclusao(true)} />
         </View>
       </View>
 
@@ -220,25 +220,22 @@ export default function Ciclo() {
         }}
       />
       <DialogoConfirmacao
-        visivel={excluindo}
+        visivel={confirmandoExclusao}
         titulo="Excluir ciclo?"
         mensagem={`O ciclo ${ciclo?.nome ?? ''} e todos os seus registros de estudo serão apagados. Isso não pode ser desfeito.`}
         tom="perigo"
         rotuloConfirmar="Excluir ciclo"
-        onCancelar={() => setExcluindo(false)}
-        onConfirmar={async () => {
-          setExcluindo(false);
-          if (travado.current) return;
-          travado.current = true;
-          setOcupado(true);
-          try {
-            await excluirCiclo(db, cicloId);
-            router.replace('/ciclos');
-          } catch {
-            Alert.alert('Não foi possível excluir o ciclo', 'Tente novamente.');
-            travado.current = false;
-            setOcupado(false);
-          }
+        onCancelar={() => setConfirmandoExclusao(false)}
+        onConfirmar={() => {
+          setConfirmandoExclusao(false);
+          executar(
+            async () => {
+              await excluirCiclo(db, cicloId);
+              router.replace('/ciclos');
+            },
+            'Não foi possível excluir o ciclo',
+            false,
+          );
         }}
       />
     </ScrollView>
@@ -262,5 +259,5 @@ const estilos = StyleSheet.create({
   cabecalhoVolta: { flexDirection: 'row', alignItems: 'center', gap: espaco[8] },
   lista: { gap: espaco[8] },
   inicio: { flexDirection: 'row' },
-  acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[10] },
+  acoesCiclo: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[10] },
 });
