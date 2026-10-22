@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,6 +57,7 @@ const ehIOS = Platform.OS === 'ios';
 export default function RegistrarEstudo() {
   const db = useSQLiteContext();
   const { top, bottom } = useSafeAreaInsets();
+  const { height: alturaJanela } = useWindowDimensions();
   const mostrarToast = useToast((s) => s.mostrar);
 
   const [ciclo, setCiclo] = useState<Ciclo | null>(null);
@@ -174,11 +176,17 @@ export default function RegistrarEstudo() {
   return (
     <KeyboardAvoidingView
       behavior={ehIOS ? 'padding' : undefined}
-      style={[estilos.scrim, { paddingTop: top + espaco[16], paddingBottom: Math.max(bottom, espaco[16]) }]}
+      style={estilos.scrim}
     >
       <Pressable accessibilityLabel="Fechar sem salvar" style={StyleSheet.absoluteFill} onPress={cancelar} />
-      <View accessibilityViewIsModal style={estilos.dialogo}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={estilos.formulario}>
+      <View
+        accessibilityViewIsModal
+        style={[estilos.dialogo, { maxHeight: alturaJanela - top - bottom - espaco[24] * 2 }]}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={estilos.formulario}
+        >
           <View style={estilos.cabecalho}>
             <View style={estilos.titulo}>
               <Texto estilo="tituloDialogo">Registrar estudo</Texto>
@@ -258,6 +266,7 @@ export default function RegistrarEstudo() {
                     <DateTimePicker
                       value={form.data}
                       mode="date"
+                      locale="pt-BR"
                       maximumDate={new Date()}
                       // O app é só no tema escuro (userInterfaceStyle: dark).
                       themeVariant="dark"
@@ -331,20 +340,22 @@ export default function RegistrarEstudo() {
                 onChangeText={(v) => alterar('anotacao', v)}
                 placeholder="Opcional"
               />
-
-              {pendencia || erro ? (
-                <Texto estilo="meta13Medio" cor={erro ? cores.red : cores.ink2}>
-                  {erro ?? pendencia}
-                </Texto>
-              ) : null}
-
-              <View style={estilos.rodape}>
-                <Botao rotulo="Cancelar" variante="discreto" onPress={cancelar} />
-                <Botao rotulo="Salvar registro" desabilitado={!podeSalvar} onPress={salvar} />
-              </View>
             </>
           )}
         </ScrollView>
+        {semCiclo ? null : (
+          <View style={estilos.rodape}>
+            {pendencia || erro ? (
+              <Texto estilo="meta13Medio" cor={erro ? cores.red : cores.ink2}>
+                {erro ?? pendencia}
+              </Texto>
+            ) : null}
+            <View style={estilos.botoes}>
+              <Botao rotulo="Cancelar" variante="discreto" onPress={cancelar} />
+              <Botao rotulo="Salvar registro" desabilitado={!podeSalvar} onPress={salvar} />
+            </View>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -358,7 +369,6 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.scrim,
   },
   dialogo: {
-    maxHeight: '100%',
     backgroundColor: cores.surface,
     borderWidth: 1,
     borderColor: cores.line,
@@ -392,5 +402,12 @@ const estilos = StyleSheet.create({
     borderRadius: raio.control,
     backgroundColor: cores.paper,
   },
-  rodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: espaco[10] },
+  rodape: {
+    gap: espaco[12],
+    paddingHorizontal: padding.hero,
+    paddingVertical: espaco[16],
+    borderTopWidth: 1,
+    borderTopColor: cores.line,
+  },
+  botoes: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: espaco[10] },
 });
