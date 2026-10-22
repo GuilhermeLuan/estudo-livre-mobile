@@ -126,6 +126,23 @@ export default function Ciclo() {
       </View>
 
       <View style={estilos.card}>
+        <View style={estilos.cabecalhoVolta}>
+          <Texto estilo="tituloH2">{`Volta ${ciclo?.voltaAtual ?? 1}`}</Texto>
+          <Pilula texto={ciclo?.ativo ? 'Ciclo ativo' : 'Inativo'} cor={ciclo?.ativo ? 'verde' : 'neutra'} />
+        </View>
+        <View style={estilos.acoes}>
+          {ciclo && !ciclo.ativo ? (
+            <Botao
+              rotulo="Tornar ativo"
+              desabilitado={ocupado}
+              onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
+            />
+          ) : null}
+          <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setExcluindo(true)} />
+        </View>
+      </View>
+
+      <View style={estilos.card}>
         <View style={estilos.cabecalhoCard}>
           <Texto estilo="tituloH2">Etapas</Texto>
           <Texto estilo="meta13" cor={cores.ink2}>
@@ -187,23 +204,6 @@ export default function Ciclo() {
         </View>
       </View>
 
-      <View style={estilos.card}>
-        <View style={estilos.cabecalhoCard}>
-          <Texto estilo="tituloH2">Volta e ciclo</Texto>
-          <Pilula texto={ciclo?.ativo ? 'Ciclo ativo' : 'Ciclo inativo'} cor={ciclo?.ativo ? 'verde' : 'neutra'} />
-        </View>
-        <View style={estilos.acoes}>
-          {ciclo && !ciclo.ativo ? (
-            <Botao
-              rotulo="Tornar ativo"
-              desabilitado={ocupado}
-              onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
-            />
-          ) : null}
-          <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setExcluindo(true)} />
-        </View>
-      </View>
-
       <DialogoConfirmacao
         visivel={remover !== null}
         titulo="Remover etapa?"
@@ -222,9 +222,9 @@ export default function Ciclo() {
       <DialogoConfirmacao
         visivel={excluindo}
         titulo="Excluir ciclo?"
-        mensagem={`O ciclo ${ciclo?.nome ?? ''} e todos os registros de estudo dele serão apagados. Essa ação não pode ser desfeita.`}
+        mensagem={`O ciclo ${ciclo?.nome ?? ''} e todos os seus registros de estudo serão apagados. Isso não pode ser desfeito.`}
         tom="perigo"
-        rotuloConfirmar="Excluir"
+        rotuloConfirmar="Excluir ciclo"
         onCancelar={() => setExcluindo(false)}
         onConfirmar={async () => {
           setExcluindo(false);
@@ -259,6 +259,7 @@ const estilos = StyleSheet.create({
     borderRadius: raio.lg,
   },
   cabecalhoCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: espaco[8] },
+  cabecalhoVolta: { flexDirection: 'row', alignItems: 'center', gap: espaco[8] },
   lista: { gap: espaco[8] },
   inicio: { flexDirection: 'row' },
   acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[10] },
