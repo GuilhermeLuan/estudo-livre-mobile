@@ -1,5 +1,5 @@
 import type { Etapa } from '@/types/banco';
-import { materiasDoCiclo, proximaEtapa } from './proximaEtapa';
+import { materiasDoCiclo, proximaEtapa } from '../proximaEtapa';
 
 const etapa = (posicao: number, materia: string, minutos: number): Etapa => ({
   id: posicao + 1,
