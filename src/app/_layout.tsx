@@ -40,7 +40,14 @@ export default function RootLayout() {
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.paper } }}
       >
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="registrar-estudo" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="registrar-estudo"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen name="registrar-sessao" options={{ presentation: 'modal' }} />
       </Stack>
       <ToastHost />

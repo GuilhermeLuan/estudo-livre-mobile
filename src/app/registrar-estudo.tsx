@@ -2,15 +2,23 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Botao } from '@/components/ui/Botao';
 import { Campo } from '@/components/ui/Campo';
+import { CampoNumerico } from '@/components/ui/CampoNumerico';
 import { Chip } from '@/components/ui/Chip';
-import { EstadoVazio } from '@/components/ui/EstadoVazio';
+import { Icone } from '@/components/ui/Icone';
 import { Texto } from '@/components/ui/Texto';
-import { cores, espaco, raio } from '@/constants/tema';
+import { cores, espaco, padding, raio, sombras } from '@/constants/tema';
 import {
   buscarCicloAtivo,
   criarRegistro,
@@ -20,7 +28,7 @@ import {
 import { useToast } from '@/store/toast';
 import type { Ciclo, Etapa, TipoEstudo } from '@/types/banco';
 import { formatarDataBR, formatarDataISO } from '@/utils/data';
-import { proximaEtapa } from '@/utils/proximaEtapa';
+import { materiasDoCiclo, proximaEtapa } from '@/utils/proximaEtapa';
 
 const TIPOS: { valor: TipoEstudo; rotulo: string }[] = [
   { valor: 'teoria', rotulo: 'Teoria' },
@@ -30,298 +38,359 @@ const TIPOS: { valor: TipoEstudo; rotulo: string }[] = [
   { valor: 'leitura_lei', rotulo: 'Leitura de lei' },
 ];
 
-const soDigitos = (v: string) => v.replace(/\D/g, '');
+type Formulario = {
+  chaveMateria: string | null;
+  conteudo: string;
+  data: Date;
+  horas: string;
+  minutos: string;
+  tipo: TipoEstudo | null;
+  questoes: string;
+  acertos: string;
+  anotacao: string;
+};
+
 const paraInteiro = (v: string) => (v === '' ? 0 : Number(v));
+const ehIOS = Platform.OS === 'ios';
 
 export default function RegistrarEstudo() {
   const db = useSQLiteContext();
   const { top, bottom } = useSafeAreaInsets();
   const mostrarToast = useToast((s) => s.mostrar);
 
-  const [carregado, setCarregado] = useState(false);
   const [ciclo, setCiclo] = useState<Ciclo | null>(null);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
-  const [chaveMateria, setChaveMateria] = useState<string | null>(null);
-  const [horas, setHoras] = useState('');
-  const [minutos, setMinutos] = useState('');
-  const [conteudo, setConteudo] = useState('');
-  const [tipo, setTipo] = useState<TipoEstudo | null>(null);
-  const [questoes, setQuestoes] = useState('');
-  const [acertos, setAcertos] = useState('');
-  const [data, setData] = useState(() => new Date());
-  const [anotacao, setAnotacao] = useState('');
+  const [semCiclo, setSemCiclo] = useState(false);
+  const [listaAberta, setListaAberta] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [form, setForm] = useState<Formulario>({
+    chaveMateria: null,
+    conteudo: '',
+    data: new Date(),
+    horas: '',
+    minutos: '',
+    tipo: null,
+    questoes: '',
+    acertos: '',
+    anotacao: '',
+  });
+
+  const alterar = <K extends keyof Formulario>(campo: K, valor: Formulario[K]) =>
+    setForm((f) => ({ ...f, [campo]: valor }));
 
   useEffect(() => {
     let ativo = true;
     (async () => {
-      const c = await buscarCicloAtivo(db);
-      if (!c) return ativo && setCarregado(true);
-      const [es, registros] = await Promise.all([
-        listarEtapas(db, c.id),
-        listarRegistrosDoCiclo(db, c.id, c.voltaAtual),
-      ]);
-      if (!ativo) return;
-      setCiclo(c);
-      setEtapas(es);
-      setChaveMateria((proximaEtapa(es, registros) ?? es[0])?.chaveMateria ?? null);
-      setCarregado(true);
+      try {
+        const cicloAtivo = await buscarCicloAtivo(db);
+        if (!ativo) return;
+        if (!cicloAtivo) return setSemCiclo(true);
+        const [lista, registros] = await Promise.all([
+          listarEtapas(db, cicloAtivo.id),
+          listarRegistrosDoCiclo(db, cicloAtivo.id, cicloAtivo.voltaAtual),
+        ]);
+        if (!ativo) return;
+        setCiclo(cicloAtivo);
+        setEtapas(lista);
+        // Se todas as etapas estiverem cheias, sugere a primeira.
+        const sugerida = proximaEtapa(lista, registros) ?? lista[0];
+        setForm((f) => ({ ...f, chaveMateria: sugerida?.chaveMateria ?? null }));
+      } catch {
+        if (ativo) setErro('Não foi possível carregar o ciclo.');
+      }
     })();
     return () => {
       ativo = false;
     };
   }, [db]);
 
-  const materias = useMemo(() => {
-    const vistas = new Map<string, string>();
-    for (const e of etapas) if (!vistas.has(e.chaveMateria)) vistas.set(e.chaveMateria, e.materia);
-    return [...vistas].map(([chave, nome]) => ({ chave, nome }));
-  }, [etapas]);
+  const materias = useMemo(() => materiasDoCiclo(etapas), [etapas]);
+  const materiaEscolhida = materias.find((m) => m.chave === form.chaveMateria);
 
-  const duracao = paraInteiro(horas) * 60 + paraInteiro(minutos);
-  const nQuestoes = paraInteiro(questoes);
-  const comQuestoes = nQuestoes > 0;
-  const nAcertos = paraInteiro(acertos);
-  const acertosInvalidos = comQuestoes && nAcertos > nQuestoes;
-  const podeSalvar = chaveMateria !== null && duracao > 0 && !acertosInvalidos && !salvando;
+  const duracaoMinutos = paraInteiro(form.horas) * 60 + paraInteiro(form.minutos);
+  const totalQuestoes = paraInteiro(form.questoes);
+  const comQuestoes = totalQuestoes > 0;
+  const totalAcertos = paraInteiro(form.acertos);
+  const acertosAcimaDeQuestoes = comQuestoes && totalAcertos > totalQuestoes;
 
-  const aoMudarQuestoes = (v: string) => {
-    const limpo = soDigitos(v);
-    setQuestoes(limpo);
-    if (paraInteiro(limpo) === 0) setAcertos('');
-  };
+  const pendencia =
+    form.chaveMateria === null
+      ? 'Escolha a matéria.'
+      : duracaoMinutos <= 0
+        ? 'Informe a duração: horas ou minutos maiores que zero.'
+        : acertosAcimaDeQuestoes
+          ? 'Acertos não pode passar de questões.'
+          : null;
+  const podeSalvar = pendencia === null && !salvando;
 
-  const escolherData = (nova: Date) => {
-    const hoje = new Date();
-    setData(nova > hoje ? hoje : nova);
-  };
+  const alterarQuestoes = (v: string) =>
+    setForm((f) => ({ ...f, questoes: v, acertos: paraInteiro(v) === 0 ? '' : f.acertos }));
+
+  const alterarData = (nova: Date) => alterar('data', nova > new Date() ? new Date() : nova);
 
   const abrirSeletorAndroid = () =>
     DateTimePickerAndroid.open({
-      value: data,
+      value: form.data,
       mode: 'date',
       maximumDate: new Date(),
-      onValueChange: (_, d) => escolherData(d),
+      onValueChange: (_, d) => alterarData(d),
     });
 
   const salvar = async () => {
-    if (!podeSalvar || chaveMateria === null) return;
+    if (!podeSalvar || form.chaveMateria === null) return;
     setSalvando(true);
+    setErro(null);
     try {
       // A volta é a que está aberta agora, independentemente da data informada.
       const atual = await buscarCicloAtivo(db);
-      if (!atual) return;
+      if (!atual) {
+        setErro('Nenhum ciclo ativo. Ative um ciclo para registrar.');
+        return;
+      }
       await criarRegistro(db, {
         cicloId: atual.id,
         volta: atual.voltaAtual,
-        chaveMateria,
-        conteudo: conteudo.trim() || null,
-        data: formatarDataISO(data),
-        minutos: duracao,
-        tipo,
-        questoes: comQuestoes ? nQuestoes : null,
-        acertos: comQuestoes && acertos !== '' ? nAcertos : null,
-        anotacao: anotacao.trim() || null,
+        chaveMateria: form.chaveMateria,
+        conteudo: form.conteudo.trim() || null,
+        data: formatarDataISO(form.data),
+        minutos: duracaoMinutos,
+        tipo: form.tipo,
+        questoes: comQuestoes ? totalQuestoes : null,
+        acertos: comQuestoes && form.acertos !== '' ? totalAcertos : null,
+        anotacao: form.anotacao.trim() || null,
       });
       mostrarToast('Estudo registrado');
       router.back();
+    } catch {
+      setErro('Não foi possível salvar o estudo. Tente de novo.');
     } finally {
       setSalvando(false);
     }
   };
 
+  const cancelar = () => router.back();
+
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[estilos.tela, { paddingTop: Platform.OS === 'ios' ? 0 : top }]}
+      behavior={ehIOS ? 'padding' : undefined}
+      style={[estilos.scrim, { paddingTop: top + espaco[16], paddingBottom: Math.max(bottom, espaco[16]) }]}
     >
-      <View style={estilos.topo}>
-        <Texto estilo="tituloH1">Registrar estudo</Texto>
-        {ciclo ? (
-          <Texto estilo="lista14" cor={cores.ink2}>
-            {ciclo.nome}
-          </Texto>
-        ) : null}
-      </View>
-
-      {carregado && !ciclo ? (
-        <View style={estilos.centro}>
-          <EstadoVazio titulo="Nenhum ciclo ativo" texto="Crie ou ative um ciclo para registrar estudos." />
-          <Botao rotulo="Fechar" variante="secundario" onPress={() => router.back()} />
-        </View>
-      ) : (
-        <>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={estilos.formulario}
-          >
-            <View style={estilos.grupo}>
-              <Texto estilo="meta13Medio" cor={cores.ink2}>
-                Matéria
-              </Texto>
-              <View style={estilos.chips}>
-                {materias.map((m) => (
-                  <Chip
-                    key={m.chave}
-                    texto={m.nome}
-                    selecionado={m.chave === chaveMateria}
-                    onPress={() => setChaveMateria(m.chave)}
-                  />
-                ))}
-              </View>
+      <Pressable accessibilityLabel="Fechar sem salvar" style={StyleSheet.absoluteFill} onPress={cancelar} />
+      <View accessibilityViewIsModal style={estilos.dialogo}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={estilos.formulario}>
+          <View style={estilos.cabecalho}>
+            <View style={estilos.titulo}>
+              <Texto estilo="tituloDialogo">Registrar estudo</Texto>
+              {ciclo ? (
+                <Texto estilo="meta13" cor={cores.ink2}>
+                  {ciclo.nome}
+                </Texto>
+              ) : null}
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
+              onPress={cancelar}
+              style={estilos.fechar}
+            >
+              <Icone nome="fechar" tamanho={20} />
+            </Pressable>
+          </View>
 
-            <View style={estilos.linha}>
-              <View style={estilos.metade}>
+          {semCiclo ? (
+            <Texto estilo="lista14" cor={cores.ink2}>
+              Nenhum ciclo ativo. Crie ou ative um ciclo para registrar estudos.
+            </Texto>
+          ) : (
+            <>
+              <View style={estilos.grupo}>
                 <Campo
-                  tipo="texto"
-                  rotulo="Horas"
-                  valor={horas}
-                  onChangeText={(v) => setHoras(soDigitos(v).slice(0, 2))}
-                  keyboardType="number-pad"
-                  placeholder="0"
-                  maxLength={2}
+                  tipo="selecao"
+                  rotulo="Matéria"
+                  valor={materiaEscolhida?.nome ?? ''}
+                  placeholder="Escolha a matéria"
+                  onPress={() => setListaAberta((a) => !a)}
                 />
+                {listaAberta ? (
+                  <View style={estilos.lista}>
+                    {materias.map((m) => (
+                      <Pressable
+                        key={m.chave}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: m.chave === form.chaveMateria }}
+                        onPress={() => {
+                          alterar('chaveMateria', m.chave);
+                          setListaAberta(false);
+                        }}
+                        style={estilos.opcao}
+                      >
+                        <Texto
+                          estilo="lista14Medio"
+                          cor={m.chave === form.chaveMateria ? cores.accentInk : cores.ink}
+                        >
+                          {m.nome}
+                        </Texto>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-              <View style={estilos.metade}>
-                <Campo
-                  tipo="texto"
-                  rotulo="Minutos"
-                  valor={minutos}
-                  onChangeText={(v) => setMinutos(soDigitos(v).slice(0, 3))}
-                  keyboardType="number-pad"
-                  placeholder="0"
-                  maxLength={3}
-                />
-              </View>
-            </View>
 
-            <Campo
-              tipo="texto"
-              rotulo="Conteúdo (opcional)"
-              valor={conteudo}
-              onChangeText={setConteudo}
-              placeholder="Ex.: Princípios da administração"
-            />
+              <Campo
+                tipo="texto"
+                rotulo="Conteúdo livre"
+                valor={form.conteudo}
+                onChangeText={(v) => alterar('conteudo', v)}
+                placeholder="Opcional. Ex.: crase antes de horas"
+              />
 
-            <View style={estilos.grupo}>
-              <Texto estilo="meta13Medio" cor={cores.ink2}>
-                Tipo de estudo (opcional)
-              </Texto>
-              <View style={estilos.chips}>
-                {TIPOS.map((t) => (
-                  <Chip
-                    key={t.valor}
-                    texto={t.rotulo}
-                    selecionado={tipo === t.valor}
-                    onPress={() => setTipo(tipo === t.valor ? null : t.valor)}
-                  />
-                ))}
+              <View style={estilos.grupo}>
+                <Texto estilo="meta13Medio" cor={cores.ink2}>
+                  Data
+                </Texto>
+                {Platform.OS === 'android' ? (
+                  <Pressable accessibilityRole="button" onPress={abrirSeletorAndroid} style={estilos.campoData}>
+                    <Texto estilo="lista14">{formatarDataBR(form.data)}</Texto>
+                  </Pressable>
+                ) : (
+                  <View style={estilos.campoData}>
+                    <DateTimePicker
+                      value={form.data}
+                      mode="date"
+                      maximumDate={new Date()}
+                      // O app é só no tema escuro (userInterfaceStyle: dark).
+                      themeVariant="dark"
+                      onValueChange={(_, d) => alterarData(d)}
+                    />
+                  </View>
+                )}
               </View>
-            </View>
 
-            <View style={estilos.linha}>
-              <View style={estilos.metade}>
-                <Campo
-                  tipo="texto"
-                  rotulo="Questões"
-                  valor={questoes}
-                  onChangeText={aoMudarQuestoes}
-                  keyboardType="number-pad"
-                  placeholder="0"
-                  maxLength={4}
-                />
-              </View>
-              <View style={estilos.metade}>
-                <Campo
-                  tipo="texto"
-                  rotulo="Acertos"
-                  valor={acertos}
-                  onChangeText={(v) => setAcertos(soDigitos(v).slice(0, 4))}
-                  keyboardType="number-pad"
-                  placeholder="0"
-                  maxLength={4}
-                  desabilitado={!comQuestoes}
-                />
-              </View>
-            </View>
-            {acertosInvalidos ? (
-              <Texto estilo="meta13Medio" cor={cores.red}>
-                Acertos não pode passar de questões.
-              </Texto>
-            ) : null}
-
-            <View style={estilos.grupo}>
-              <Texto estilo="meta13Medio" cor={cores.ink2}>
-                Data
-              </Texto>
-              {Platform.OS === 'android' ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={abrirSeletorAndroid}
-                  style={estilos.campoData}
-                >
-                  <Texto estilo="lista14">{formatarDataBR(data)}</Texto>
-                </Pressable>
-              ) : (
-                <View style={estilos.dataIos}>
-                  <DateTimePicker
-                    value={data}
-                    mode="date"
-                    maximumDate={new Date()}
-                    themeVariant="dark"
-                    onValueChange={(_, d) => escolherData(d)}
+              <View style={estilos.linha}>
+                <View style={estilos.metade}>
+                  <CampoNumerico
+                    rotulo="Horas"
+                    valor={form.horas}
+                    onChange={(v) => alterar('horas', v)}
+                    digitos={2}
                   />
                 </View>
-              )}
-            </View>
+                <View style={estilos.metade}>
+                  <CampoNumerico
+                    rotulo="Minutos"
+                    valor={form.minutos}
+                    onChange={(v) => alterar('minutos', v)}
+                    digitos={3}
+                  />
+                </View>
+              </View>
 
-            <Campo
-              tipo="areaDeTexto"
-              rotulo="Anotação (opcional)"
-              valor={anotacao}
-              onChangeText={setAnotacao}
-              placeholder="O que vale lembrar?"
-            />
-          </ScrollView>
+              <View style={estilos.grupo}>
+                <Texto estilo="meta13Medio" cor={cores.ink2}>
+                  Tipo de estudo
+                </Texto>
+                <View style={estilos.chips}>
+                  {TIPOS.map((t) => (
+                    <Chip
+                      key={t.valor}
+                      texto={t.rotulo}
+                      selecionado={form.tipo === t.valor}
+                      onPress={() => alterar('tipo', form.tipo === t.valor ? null : t.valor)}
+                    />
+                  ))}
+                </View>
+              </View>
 
-          <View style={[estilos.rodape, { paddingBottom: Math.max(bottom, espaco[16]) }]}>
-            <Botao rotulo="Cancelar" variante="secundario" onPress={() => router.back()} />
-            <Botao rotulo="Salvar" desabilitado={!podeSalvar} onPress={salvar} />
-          </View>
-        </>
-      )}
+              <View style={estilos.linha}>
+                <View style={estilos.metade}>
+                  <CampoNumerico
+                    rotulo="Questões"
+                    valor={form.questoes}
+                    onChange={alterarQuestoes}
+                    digitos={4}
+                    placeholder="Opcional"
+                  />
+                </View>
+                <View style={estilos.metade}>
+                  <CampoNumerico
+                    rotulo="Acertos"
+                    valor={form.acertos}
+                    onChange={(v) => alterar('acertos', v)}
+                    digitos={4}
+                    placeholder="Opcional"
+                    desabilitado={!comQuestoes}
+                  />
+                </View>
+              </View>
+
+              <Campo
+                tipo="areaDeTexto"
+                rotulo="Anotação"
+                valor={form.anotacao}
+                onChangeText={(v) => alterar('anotacao', v)}
+                placeholder="Opcional"
+              />
+
+              {pendencia || erro ? (
+                <Texto estilo="meta13Medio" cor={erro ? cores.red : cores.ink2}>
+                  {erro ?? pendencia}
+                </Texto>
+              ) : null}
+
+              <View style={estilos.rodape}>
+                <Botao rotulo="Cancelar" variante="discreto" onPress={cancelar} />
+                <Botao rotulo="Salvar registro" desabilitado={!podeSalvar} onPress={salvar} />
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const estilos = StyleSheet.create({
-  tela: { flex: 1, backgroundColor: cores.paper },
-  topo: { gap: espaco[4], paddingHorizontal: espaco[16], paddingTop: espaco[20], paddingBottom: espaco[8] },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: espaco[16], padding: espaco[16] },
-  formulario: { gap: espaco[16], padding: espaco[16] },
+  scrim: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: espaco[16],
+    backgroundColor: cores.scrim,
+  },
+  dialogo: {
+    maxHeight: '100%',
+    backgroundColor: cores.surface,
+    borderWidth: 1,
+    borderColor: cores.line,
+    borderRadius: raio.lg,
+    overflow: 'hidden',
+    ...sombras.flutuante,
+  },
+  formulario: { gap: espaco[16], padding: padding.hero },
+  cabecalho: { flexDirection: 'row', alignItems: 'flex-start', gap: espaco[12] },
+  titulo: { flex: 1 },
+  fechar: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   grupo: { gap: espaco[6] },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[8] },
+  lista: {
+    borderWidth: 1,
+    borderColor: cores.line,
+    borderRadius: raio.control,
+    backgroundColor: cores.paper,
+    overflow: 'hidden',
+  },
+  opcao: { paddingHorizontal: espaco[12], paddingVertical: espaco[10] },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[6] },
   linha: { flexDirection: 'row', gap: espaco[12] },
   metade: { flex: 1 },
   campoData: {
     height: 40,
     justifyContent: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: espaco[12],
     borderWidth: 1,
     borderColor: cores.line,
     borderRadius: raio.control,
     backgroundColor: cores.paper,
   },
-  dataIos: { alignItems: 'flex-start' },
-  rodape: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: espaco[10],
-    paddingHorizontal: espaco[16],
-    paddingTop: espaco[12],
-    borderTopWidth: 1,
-    borderTopColor: cores.line,
-    backgroundColor: cores.surface,
-  },
+  rodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: espaco[10] },
 });
