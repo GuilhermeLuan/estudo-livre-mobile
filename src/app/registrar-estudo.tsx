@@ -263,7 +263,10 @@ export default function RegistrarEstudo() {
                   </Pressable>
                 ) : (
                   <View style={estilos.campoData}>
+                    <Texto estilo="lista14">{formatarDataBR(form.data)}</Texto>
+                    {/* O seletor nativo fica transparente por cima para o texto seguir o tamanho do Figma. */}
                     <DateTimePicker
+                      style={estilos.seletorTransparente}
                       value={form.data}
                       mode="date"
                       locale="pt-BR"
@@ -392,6 +395,7 @@ const estilos = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[6] },
   linha: { flexDirection: 'row', gap: espaco[12] },
   metade: { flex: 1 },
+  seletorTransparente: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, opacity: 0.02 },
   campoData: {
     height: 40,
     justifyContent: 'center',
