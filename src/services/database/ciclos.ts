@@ -67,7 +67,17 @@ export async function definirVoltaAtual(db: SQLiteDatabase, id: number, volta: n
   await db.runAsync('UPDATE ciclos SET volta_atual = ? WHERE id = ?', volta, id);
 }
 
-/** Apaga o ciclo; etapas, registros e cronômetro dele saem em cascata. */
+/**
+ * Apaga o ciclo; etapas, registros e cronômetro dele saem em cascata. Se era o ativo,
+ * o ciclo criado mais recentemente dos que sobraram passa a ser o ativo.
+ */
 export async function excluirCiclo(db: SQLiteDatabase, id: number): Promise<void> {
-  await db.runAsync('DELETE FROM ciclos WHERE id = ?', id);
+  await db.withTransactionAsync(async () => {
+    const alvo = await db.getFirstAsync<{ ativo: number }>('SELECT ativo FROM ciclos WHERE id = ?', id);
+    await db.runAsync('DELETE FROM ciclos WHERE id = ?', id);
+    if (alvo?.ativo !== 1) return;
+    await db.runAsync(
+      'UPDATE ciclos SET ativo = 1 WHERE id = (SELECT id FROM ciclos ORDER BY criado_em DESC, id DESC LIMIT 1)',
+    );
+  });
 }

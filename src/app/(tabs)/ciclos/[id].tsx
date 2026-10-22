@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -8,12 +8,15 @@ import { ItemEtapa } from '@/components/ItemEtapa';
 import { Botao } from '@/components/ui/Botao';
 import { Campo } from '@/components/ui/Campo';
 import { DialogoConfirmacao } from '@/components/ui/DialogoConfirmacao';
+import { Pilula } from '@/components/ui/Pilula';
 import { Texto } from '@/components/ui/Texto';
 import { cores, espaco, raio } from '@/constants/tema';
 import {
   atualizarEtapa,
   buscarCiclo,
   criarEtapa,
+  definirCicloAtivo,
+  excluirCiclo,
   excluirEtapa,
   listarEtapas,
   renomearCiclo,
@@ -25,6 +28,7 @@ const LIMITE_NOME = 60;
 
 export default function Ciclo() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const cicloId = Number(id);
   const [ciclo, setCiclo] = useState<CicloTipo | null>(null);
@@ -34,6 +38,7 @@ export default function Ciclo() {
   const [remover, setRemover] = useState<{ etapa: Etapa; posicao: number } | null>(null);
   const [novaMateria, setNovaMateria] = useState('');
   const [novasHoras, setNovasHoras] = useState('');
+  const [excluindo, setExcluindo] = useState(false);
 
   const carregar = useCallback(async () => {
     const [c, e] = await Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]);
@@ -182,6 +187,23 @@ export default function Ciclo() {
         </View>
       </View>
 
+      <View style={estilos.card}>
+        <View style={estilos.cabecalhoCard}>
+          <Texto estilo="tituloH2">Volta e ciclo</Texto>
+          <Pilula texto={ciclo?.ativo ? 'Ciclo ativo' : 'Ciclo inativo'} cor={ciclo?.ativo ? 'verde' : 'neutra'} />
+        </View>
+        <View style={estilos.acoes}>
+          {ciclo && !ciclo.ativo ? (
+            <Botao
+              rotulo="Tornar ativo"
+              desabilitado={ocupado}
+              onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
+            />
+          ) : null}
+          <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setExcluindo(true)} />
+        </View>
+      </View>
+
       <DialogoConfirmacao
         visivel={remover !== null}
         titulo="Remover etapa?"
@@ -195,6 +217,28 @@ export default function Ciclo() {
           if (!alvo) return;
           setAberta(null);
           executar(() => excluirEtapa(db, alvo.etapa.id), 'Não foi possível remover a etapa');
+        }}
+      />
+      <DialogoConfirmacao
+        visivel={excluindo}
+        titulo="Excluir ciclo?"
+        mensagem={`O ciclo ${ciclo?.nome ?? ''} e todos os registros de estudo dele serão apagados. Essa ação não pode ser desfeita.`}
+        tom="perigo"
+        rotuloConfirmar="Excluir"
+        onCancelar={() => setExcluindo(false)}
+        onConfirmar={async () => {
+          setExcluindo(false);
+          if (travado.current) return;
+          travado.current = true;
+          setOcupado(true);
+          try {
+            await excluirCiclo(db, cicloId);
+            router.replace('/ciclos');
+          } catch {
+            Alert.alert('Não foi possível excluir o ciclo', 'Tente novamente.');
+            travado.current = false;
+            setOcupado(false);
+          }
         }}
       />
     </ScrollView>
@@ -217,4 +261,5 @@ const estilos = StyleSheet.create({
   cabecalhoCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: espaco[8] },
   lista: { gap: espaco[8] },
   inicio: { flexDirection: 'row' },
+  acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco[10] },
 });
