@@ -25,7 +25,8 @@
       "expo-router",
       "expo-sqlite",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "estudos-livre",
     "experiments": {

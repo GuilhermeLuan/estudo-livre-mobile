@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { useEffect } from 'react';
 
+import { ToastHost } from '@/components/ui/ToastHost';
 import { cores } from '@/constants/tema';
 import { NOME_BANCO, migrarBanco } from '@/services/database';
 
@@ -39,9 +40,17 @@ export default function RootLayout() {
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.paper } }}
       >
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="registrar-estudo" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="registrar-estudo"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen name="registrar-sessao" options={{ presentation: 'modal' }} />
       </Stack>
+      <ToastHost />
     </SQLiteProvider>
   );
 }

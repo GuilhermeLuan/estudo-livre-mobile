@@ -3,6 +3,7 @@
   "compilerOptions": {
     "types": ["jest"],
     "strict": true,
+    "types": ["jest"],
     "paths": {
       "@/*": [
         "./src/*"
