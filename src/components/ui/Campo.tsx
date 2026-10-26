@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
 import { cores, espaco, raio, textos } from '@/constants/tema';
 import { Icone } from './Icone';
@@ -20,7 +20,7 @@ type Props =
 
 export function Campo(props: Props) {
   const [focado, setFocado] = useState(false);
-  const entradaRef = useRef<TextInput>(null);
+  const entradaRef = useRef<TextInputInstance>(null);
   const { rotulo, valor, tipo } = props;
   const editavel = (tipo === 'texto' || tipo === 'areaDeTexto') && !props.desabilitado;
   const area = tipo === 'areaDeTexto';
