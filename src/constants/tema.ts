@@ -25,12 +25,14 @@ export const cores = {
 
 export const raio = {
   sm: 6,
+  barra: 3,
   control: 8,
   md: 10,
   lg: 14,
 } as const;
 
 export const espaco = {
+  2: 2,
   4: 4,
   6: 6,
   8: 8,
@@ -45,7 +47,17 @@ export const espaco = {
 export const padding = {
   card: 18,
   hero: 22,
+  linhaMateria: 7,
+  /** Espaço no fim das telas com rolagem, acima da barra inferior. */
+  fimDaTela: 120,
 } as const;
+
+export const tamanhos = {
+  barra: 5,
+  iniciais: 36,
+} as const;
+
+export const opacidadePressionado = 0.8;
 
 export const fontes = {
   regular: 'Geist_400Regular',
@@ -83,12 +95,14 @@ export const textos = {
   meta13Medio: estilo(fontes.medium, 13, 1.45),
   meta13Forte: estilo(fontes.semiBold, 13, 1.45),
   meta12: estilo(fontes.regular, 12, 1.4),
+  meta12Forte: estilo(fontes.semiBold, 12, 1.4),
   pilula12: estilo(fontes.semiBold, 12, 1.4),
   pilula11: estilo(fontes.semiBold, 11, 1.4),
   rotulo11: estilo(fontes.medium, 11, 1.3),
   iniciais12: estilo(fontes.bold, 12, 1.2),
   metrica20: estilo(fontes.semiBold, 20, 1.2),
   marca17: estilo(fontes.bold, 17, 1.2, -2),
+  discoFalta: estilo(fontes.semiBold, 31, 1.15, -2),
   cronometro24: estilo(fontes.monoSemiBold, 24, 1.2),
 } as const;
 

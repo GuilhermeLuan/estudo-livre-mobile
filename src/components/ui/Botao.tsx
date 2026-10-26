@@ -55,7 +55,13 @@ export function Botao({
         style,
       ]}
     >
-      <Texto estilo={estiloTexto} cor={variante === 'discreto' && tom === 'perigo' ? cores.red : corTexto[variante]}>
+      <Texto
+        estilo={estiloTexto}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        cor={variante === 'discreto' && tom === 'perigo' ? cores.red : corTexto[variante]}
+      >
         {rotulo}
       </Texto>
     </Pressable>
