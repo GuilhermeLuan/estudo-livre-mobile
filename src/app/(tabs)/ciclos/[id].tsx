@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { formatarDuracao } from '@/components/CardCiclo';
@@ -18,13 +18,18 @@ import {
   definirCicloAtivo,
   excluirCiclo,
   excluirEtapa,
+  iniciarNovaVolta,
   listarEtapas,
+  listarRegistrosDoCiclo,
   renomearCiclo,
 } from '@/services/database';
-import type { Ciclo as CicloTipo, Etapa } from '@/types/banco';
+import type { Ciclo as CicloTipo, Etapa, Registro } from '@/types/banco';
 import { horasParaMinutos } from '@/utils/carga';
+import { calcularProgressoVolta } from '@/utils/progresso';
 
 const LIMITE_NOME = 60;
+
+type Dados = { c: CicloTipo | null; e: Etapa[]; r: Registro[] };
 
 export default function Ciclo() {
   const db = useSQLiteContext();
@@ -39,25 +44,62 @@ export default function Ciclo() {
   const [novaMateria, setNovaMateria] = useState('');
   const [novasHoras, setNovasHoras] = useState('');
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [confirmandoVolta, setConfirmandoVolta] = useState(false);
+  const [carregadoEm, setCarregadoEm] = useState(0);
+  const [registrosDaVolta, setRegistrosDaVolta] = useState<Registro[]>([]);
 
-  const carregar = useCallback(async () => {
-    const [c, e] = await Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]);
+  const buscarDados = useCallback(async (): Promise<Dados> => {
+    const c = await buscarCiclo(db, cicloId);
+    const [e, r] = await Promise.all([
+      listarEtapas(db, cicloId),
+      c ? listarRegistrosDoCiclo(db, cicloId, c.voltaAtual) : Promise.resolve([]),
+    ]);
+    return { c, e, r };
+  }, [db, cicloId]);
+
+  const aplicar = useCallback(({ c, e, r }: Dados) => {
     setCiclo(c);
     setEtapas(e);
-  }, [db, cicloId]);
+    setRegistrosDaVolta(r);
+    setCarregadoEm(Date.now());
+  }, []);
 
-  useEffect(() => {
-    let ativo = true;
-    Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]).then(([c, e]) => {
-      if (!ativo) return;
-      setCiclo(c);
-      setNome(c?.nome ?? '');
-      setEtapas(e);
-    });
-    return () => {
-      ativo = false;
-    };
-  }, [db, cicloId]);
+  const carregar = useCallback(async () => aplicar(await buscarDados()), [aplicar, buscarDados]);
+
+  // Recarrega ao voltar para a tela: um registro feito em outra tela muda a volta e o progresso.
+  const nomeCarregado = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      let ativo = true;
+      buscarDados().then((dados) => {
+        if (!ativo) return;
+        aplicar(dados);
+        if (!nomeCarregado.current) {
+          nomeCarregado.current = true;
+          setNome(dados.c?.nome ?? '');
+        }
+      });
+      return () => {
+        ativo = false;
+      };
+    }, [aplicar, buscarDados]),
+  );
+
+  const progresso = useMemo(
+    () =>
+      ciclo
+        ? calcularProgressoVolta({
+            cicloId,
+            volta: ciclo.voltaAtual,
+            etapas,
+            registros: registrosDaVolta,
+            agora: carregadoEm,
+          })
+        : null,
+    [ciclo, cicloId, etapas, registrosDaVolta, carregadoEm],
+  );
+  const temRegistros = registrosDaVolta.length > 0;
+  const voltaAtual = ciclo?.voltaAtual ?? 1;
 
   const totalMinutos = etapas.reduce((soma, e) => soma + e.minutos, 0);
   const nomeLimpo = nome.trim();
@@ -127,9 +169,14 @@ export default function Ciclo() {
 
       <View style={estilos.card}>
         <View style={estilos.cabecalhoVolta}>
-          <Texto estilo="tituloH2">{`Volta ${ciclo?.voltaAtual ?? 1}`}</Texto>
+          <Texto estilo="tituloH2">{`Volta ${voltaAtual}`}</Texto>
           <Pilula texto={ciclo?.ativo ? 'Ciclo ativo' : 'Inativo'} cor={ciclo?.ativo ? 'verde' : 'neutra'} />
         </View>
+        {progresso && progresso.etapas.length > 0 ? (
+          <Texto estilo="lista14" cor={cores.ink2}>
+            {`${progresso.etapasConcluidas} de ${progresso.etapas.length} etapas concluídas. Faltam ${formatarDuracao(progresso.minutosFaltantes)} para fechar a volta.`}
+          </Texto>
+        ) : null}
         <View style={estilos.acoesCiclo}>
           {ciclo && !ciclo.ativo ? (
             <Botao
@@ -137,6 +184,9 @@ export default function Ciclo() {
               desabilitado={ocupado}
               onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
             />
+          ) : null}
+          {temRegistros ? (
+            <Botao rotulo="Iniciar nova volta" variante="secundario" desabilitado={ocupado} onPress={() => setConfirmandoVolta(true)} />
           ) : null}
           <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setConfirmandoExclusao(true)} />
         </View>
@@ -217,6 +267,19 @@ export default function Ciclo() {
           if (!alvo) return;
           setAberta(null);
           executar(() => excluirEtapa(db, alvo.etapa.id), 'Não foi possível remover a etapa');
+        }}
+      />
+      <DialogoConfirmacao
+        visivel={confirmandoVolta}
+        titulo="Iniciar nova volta?"
+        mensagem={`A volta ${voltaAtual} será encerrada como está. As horas registradas continuam nas estatísticas, e a volta ${voltaAtual + 1} começa zerada.`}
+        rotuloConfirmar={`Iniciar volta ${voltaAtual + 1}`}
+        onCancelar={() => setConfirmandoVolta(false)}
+        onConfirmar={() => {
+          setConfirmandoVolta(false);
+          executar(async () => {
+            await iniciarNovaVolta(db, cicloId);
+          }, 'Não foi possível iniciar a nova volta');
         }}
       />
       <DialogoConfirmacao
