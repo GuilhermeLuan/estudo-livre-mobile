@@ -40,9 +40,9 @@ async function cenario() {
   const cicloId = await criarCiclo(db, 'PF');
   await criarEtapa(db, cicloId, 'Português', 60);
   await criarEtapa(db, cicloId, 'Direito', 120);
-  const estudo = (chaveMateria: string, minutos: number, volta?: number) => ({
+  const estudo = (chaveMateria: string, minutos: number, volta = 1) => ({
     cicloId,
-    volta: volta ?? 1,
+    volta,
     chaveMateria,
     conteudo: null,
     data: '2026-10-10',
@@ -81,12 +81,49 @@ describe('fechamento automático da volta', () => {
   });
 });
 
+describe('casos de borda do fechamento', () => {
+  it('registro de volta antiga não fecha a volta aberta', async () => {
+    const { db, cicloId, estudo } = await cenario();
+    await registrarEstudo(db, estudo('portugues', 60));
+    await registrarEstudo(db, estudo('direito', 120)); // fecha a volta 1
+    expect(await registrarEstudo(db, estudo('portugues', 60, 1))).toBe(false);
+    expect((await buscarCiclo(db, cicloId))?.voltaAtual).toBe(2);
+  });
+
+  it('ciclo sem etapas nunca fecha sozinho', async () => {
+    const db = bancoEmMemoria();
+    await migrarBanco(db);
+    const cicloId = await criarCiclo(db, 'Vazio');
+    const fechou = await registrarEstudo(db, {
+      cicloId, volta: 1, chaveMateria: 'x', conteudo: null, data: '2026-10-10',
+      minutos: 30, tipo: null, questoes: null, acertos: null, anotacao: null,
+    });
+    expect(fechou).toBe(false);
+    expect(await iniciarNovaVolta(db, cicloId)).toBe(true);
+  });
+
+  it('desfaz o registro se a transação falha', async () => {
+    const { db, cicloId, estudo } = await cenario();
+    await expect(registrarEstudo(db, { ...estudo('portugues', 0) })).rejects.toThrow();
+    expect(await listarRegistros(db, cicloId)).toHaveLength(0);
+  });
+});
+
 describe('nova volta manual', () => {
   it('não faz nada sem registro na volta atual', async () => {
     const { db, cicloId } = await cenario();
     expect(await voltaAtualTemRegistros(db, cicloId)).toBe(false);
     expect(await iniciarNovaVolta(db, cicloId)).toBe(false);
     expect((await buscarCiclo(db, cicloId))?.voltaAtual).toBe(1);
+  });
+
+  it('soma as horas de todas as voltas nas estatísticas', async () => {
+    const { db, cicloId, estudo } = await cenario();
+    await registrarEstudo(db, estudo('portugues', 30));
+    await iniciarNovaVolta(db, cicloId);
+    await registrarEstudo(db, estudo('portugues', 45, 2));
+    const stats = calcularEstatisticas({ registros: await listarRegistros(db), agora: '2026-10-11' });
+    expect(stats.materias.find((m) => m.chaveMateria === 'portugues')?.minutos).toBe(75);
   });
 
   it('encerra a volta como está e mantém as horas nas estatísticas', async () => {
