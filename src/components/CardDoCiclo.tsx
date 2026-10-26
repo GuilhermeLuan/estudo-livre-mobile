@@ -54,7 +54,7 @@ export function CardDoCiclo({ ciclo, progresso, onAbrirCiclo }: Props) {
 
         <View style={estilos.acoes}>
           {/* A ação do cronômetro chega na issue do cronômetro; até lá o botão fica desabilitado. */}
-          <Botao rotulo="Iniciar cronômetro" desabilitado style={estilos.acao} />
+          <Botao rotulo="Iniciar cronômetro" style={estilos.acao} />
           <Botao
             rotulo="Registrar estudo"
             variante="secundario"
@@ -99,5 +99,5 @@ const estilos = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: cores.line,
   },
-  acao: { flex: 1 },
+  acao: { flex: 1, paddingHorizontal: espaco[12] },
 });
