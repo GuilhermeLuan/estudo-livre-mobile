@@ -12,7 +12,7 @@ const abas: Record<string, { rotulo: string; icone: NomeIcone }> = {
   estatisticas: { rotulo: 'Estatísticas', icone: 'estatisticas' },
 };
 
-export function BarraInferior({ state, navigation }: BottomTabBarProps) {
+export function BarraInferior({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const { bottom } = useSafeAreaInsets();
   return (
     <View style={[estilos.barra, { paddingBottom: Math.max(bottom, 26) }]}>
@@ -22,8 +22,8 @@ export function BarraInferior({ state, navigation }: BottomTabBarProps) {
         const atual = state.index === indice;
         const cor = atual ? cores.accentInk : cores.ink2;
         const aoPressionar = () => {
-          const evento = navigation.emit({ type: 'tabPress', target: rota.key, canPreventDefault: true });
-          if (!atual && !evento.defaultPrevented) navigation.navigate(rota.name, rota.params);
+          const evento = emitter.emit({ type: 'tabPress', target: rota.key, canPreventDefault: true });
+          if (!atual && !evento.defaultPrevented) navigateToTab(rota.key);
         };
         return (
           <Pressable
