@@ -18,8 +18,10 @@ import {
   definirCicloAtivo,
   excluirCiclo,
   excluirEtapa,
+  iniciarNovaVolta,
   listarEtapas,
   renomearCiclo,
+  voltaAtualTemRegistros,
 } from '@/services/database';
 import type { Ciclo as CicloTipo, Etapa } from '@/types/banco';
 import { horasParaMinutos } from '@/utils/carga';
@@ -39,20 +41,32 @@ export default function Ciclo() {
   const [novaMateria, setNovaMateria] = useState('');
   const [novasHoras, setNovasHoras] = useState('');
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [confirmandoVolta, setConfirmandoVolta] = useState(false);
+  const [temRegistros, setTemRegistros] = useState(false);
 
   const carregar = useCallback(async () => {
-    const [c, e] = await Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]);
+    const [c, e, r] = await Promise.all([
+      buscarCiclo(db, cicloId),
+      listarEtapas(db, cicloId),
+      voltaAtualTemRegistros(db, cicloId),
+    ]);
     setCiclo(c);
     setEtapas(e);
+    setTemRegistros(r);
   }, [db, cicloId]);
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([buscarCiclo(db, cicloId), listarEtapas(db, cicloId)]).then(([c, e]) => {
+    Promise.all([
+      buscarCiclo(db, cicloId),
+      listarEtapas(db, cicloId),
+      voltaAtualTemRegistros(db, cicloId),
+    ]).then(([c, e, r]) => {
       if (!ativo) return;
       setCiclo(c);
       setNome(c?.nome ?? '');
       setEtapas(e);
+      setTemRegistros(r);
     });
     return () => {
       ativo = false;
@@ -138,6 +152,9 @@ export default function Ciclo() {
               onPress={() => executar(() => definirCicloAtivo(db, cicloId), 'Não foi possível tornar ativo')}
             />
           ) : null}
+          {temRegistros ? (
+            <Botao rotulo="Iniciar nova volta" desabilitado={ocupado} onPress={() => setConfirmandoVolta(true)} />
+          ) : null}
           <Botao rotulo="Excluir ciclo" variante="perigo" desabilitado={ocupado} onPress={() => setConfirmandoExclusao(true)} />
         </View>
       </View>
@@ -217,6 +234,17 @@ export default function Ciclo() {
           if (!alvo) return;
           setAberta(null);
           executar(() => excluirEtapa(db, alvo.etapa.id), 'Não foi possível remover a etapa');
+        }}
+      />
+      <DialogoConfirmacao
+        visivel={confirmandoVolta}
+        titulo="Iniciar nova volta?"
+        mensagem={`A volta ${ciclo?.voltaAtual ?? ''} será encerrada como está e a próxima começa zerada. As horas dela continuam nas estatísticas.`}
+        rotuloConfirmar="Iniciar nova volta"
+        onCancelar={() => setConfirmandoVolta(false)}
+        onConfirmar={() => {
+          setConfirmandoVolta(false);
+          executar(() => iniciarNovaVolta(db, cicloId).then(() => undefined), 'Não foi possível iniciar a nova volta');
         }}
       />
       <DialogoConfirmacao

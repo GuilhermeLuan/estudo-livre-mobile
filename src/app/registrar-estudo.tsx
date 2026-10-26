@@ -22,9 +22,9 @@ import { Texto } from '@/components/ui/Texto';
 import { cores, espaco, padding, raio, sombras } from '@/constants/tema';
 import {
   buscarCicloAtivo,
-  criarRegistro,
   listarEtapas,
   listarRegistrosDoCiclo,
+  registrarEstudo,
 } from '@/services/database';
 import { useToast } from '@/store/toast';
 import type { Ciclo, Etapa, TipoEstudo } from '@/types/banco';
@@ -150,7 +150,7 @@ export default function RegistrarEstudo() {
         setErro('Nenhum ciclo ativo. Ative um ciclo para registrar.');
         return;
       }
-      await criarRegistro(db, {
+      const voltaFechou = await registrarEstudo(db, {
         cicloId: atual.id,
         volta: atual.voltaAtual,
         chaveMateria: form.chaveMateria,
@@ -162,7 +162,7 @@ export default function RegistrarEstudo() {
         acertos: comQuestoes && form.acertos !== '' ? totalAcertos : null,
         anotacao: form.anotacao.trim() || null,
       });
-      mostrarToast('Estudo registrado');
+      mostrarToast(voltaFechou ? `Estudo registrado. Volta ${atual.voltaAtual} concluída!` : 'Estudo registrado');
       router.back();
     } catch {
       setErro('Não foi possível salvar o estudo. Tente de novo.');

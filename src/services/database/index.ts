@@ -4,3 +4,4 @@ export * from './ciclos';
 export * from './etapas';
 export * from './registros';
 export * from './cronometro';
+export * from './voltas';
