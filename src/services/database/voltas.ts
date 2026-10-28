@@ -9,10 +9,13 @@ import { criarRegistro, listarRegistrosDoCiclo, type NovoRegistro } from './regi
  * Salva o registro e, se ele enche a última etapa da volta em que foi feito, abre a próxima volta.
  * Horas além da carga ficam como extras da volta que acabou de fechar. Devolve se a volta fechou.
  */
-export async function registrarEstudo(db: SQLiteDatabase, registro: NovoRegistro): Promise<boolean> {
+export async function registrarEstudo(db: SQLiteDatabase, registro: NovoRegistro, encerrarCronometro = false): Promise<boolean> {
   let fechou = false;
   await db.withTransactionAsync(async () => {
     await criarRegistro(db, registro);
+    if (encerrarCronometro) {
+      await db.runAsync('DELETE FROM cronometro WHERE id = 1 AND ciclo_id = ?', registro.cicloId);
+    }
     const ciclo = await buscarCiclo(db, registro.cicloId);
     // Registro de volta antiga (ciclo já avançou) não fecha a volta aberta.
     if (!ciclo || ciclo.voltaAtual !== registro.volta) return;

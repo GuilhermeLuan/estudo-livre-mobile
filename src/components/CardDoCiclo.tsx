@@ -1,8 +1,11 @@
 import { router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { cores, espaco, padding, raio } from '@/constants/tema';
 import type { CicloComProgresso } from '@/hooks/useDadosHoje';
+import { useCronometro } from '@/store/cronometro';
+import { useToast } from '@/store/toast';
 import { estadoDaMateria, formatarHoras, pluralizar } from '@/utils/hoje';
 import { BrilhoDisco } from './BrilhoDisco';
 import { DiscoCiclo } from './DiscoCiclo';
@@ -15,7 +18,13 @@ type Props = CicloComProgresso & { onAbrirCiclo: () => void };
 
 /** Card do ciclo ativo da aba Hoje: Disco, próxima etapa, ações e matérias. */
 export function CardDoCiclo({ ciclo, progresso, onAbrirCiclo }: Props) {
+  const db = useSQLiteContext();
+  const { sessao, pronto, ocupado, iniciar } = useCronometro();
+  const mostrarToast = useToast((s) => s.mostrar);
   const proxima = progresso.proximaEtapa;
+  const iniciarCronometro = () => {
+    iniciar(db, ciclo.id).catch(() => mostrarToast('Não foi possível iniciar o cronômetro.'));
+  };
   return (
     <View style={estilos.card}>
       <View style={estilos.hero}>
@@ -53,8 +62,12 @@ export function CardDoCiclo({ ciclo, progresso, onAbrirCiclo }: Props) {
         ) : null}
 
         <View style={estilos.acoes}>
-          {/* A ação do cronômetro chega na issue do cronômetro; até lá o botão fica desabilitado. */}
-          <Botao rotulo="Iniciar cronômetro" style={estilos.acao} />
+          <Botao
+            rotulo="Iniciar cronômetro"
+            style={estilos.acao}
+            onPress={iniciarCronometro}
+            desabilitado={!pronto || ocupado || !!sessao || !proxima}
+          />
           <Botao
             rotulo="Registrar estudo"
             variante="secundario"

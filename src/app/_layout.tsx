@@ -48,7 +48,15 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
-        <Stack.Screen name="registrar-sessao" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="registrar-sessao"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            gestureEnabled: false,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
       </Stack>
       <ToastHost />
     </SQLiteProvider>
