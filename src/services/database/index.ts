@@ -1,4 +1,4 @@
-export { NOME_BANCO } from './config';
+export * from './config';
 export { migrarBanco } from './migracoes';
 export * from './ciclos';
 export * from './etapas';

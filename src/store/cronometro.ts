@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { create } from 'zustand';
 
 import { buscarSessao, descartarSessao, salvarSessao } from '@/services/database/cronometro';
+import { cancelarAvisoCronometro, reagendarAvisoCronometro } from '@/services/lembretes';
 import type { SessaoCronometro } from '@/types/banco';
 import { tempoDecorridoMs } from '@/utils/tempoCronometro';
 
@@ -38,6 +39,7 @@ export const useCronometro = create<Estado>((set, get) => ({
       }
       const nova = { cicloId, iniciadoEm: Date.now(), acumuladoMs: 0, pausadoEm: null };
       await salvarSessao(db, nova);
+      await reagendarAvisoCronometro(db, nova);
       set({ sessao: nova, pronto: true });
     } finally {
       set({ ocupado: false });
@@ -52,6 +54,7 @@ export const useCronometro = create<Estado>((set, get) => ({
       const agora = Date.now();
       const pausada = { ...atual, acumuladoMs: tempoDecorridoMs(atual, agora), pausadoEm: agora };
       await salvarSessao(db, pausada);
+      await cancelarAvisoCronometro(db);
       set({ sessao: pausada });
     } finally {
       set({ ocupado: false });
@@ -65,6 +68,7 @@ export const useCronometro = create<Estado>((set, get) => ({
     try {
       const retomada = { ...atual, iniciadoEm: Date.now(), pausadoEm: null };
       await salvarSessao(db, retomada);
+      await reagendarAvisoCronometro(db, retomada);
       set({ sessao: retomada });
     } finally {
       set({ ocupado: false });
@@ -76,6 +80,7 @@ export const useCronometro = create<Estado>((set, get) => ({
     set({ ocupado: true });
     try {
       await descartarSessao(db);
+      await cancelarAvisoCronometro(db);
       set({ sessao: null, pronto: true });
     } finally {
       set({ ocupado: false });
