@@ -45,6 +45,7 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="index" options={{ title: 'Hoje' }} />
         <Tabs.Screen name="ciclos" options={{ title: 'Ciclos' }} />
+        <Tabs.Screen name="concursos" options={{ title: 'Concursos' }} />
         <Tabs.Screen name="estatisticas" options={{ title: 'Estatísticas' }} />
       </Tabs>
     </View>
