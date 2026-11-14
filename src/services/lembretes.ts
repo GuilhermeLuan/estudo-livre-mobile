@@ -29,6 +29,12 @@ export async function obterPermissaoNotificacoes() {
   return { granted: resposta.granted, blocked: !resposta.granted && !resposta.canAskAgain };
 }
 
+export async function notificacoesBloqueadas() {
+  if (Platform.OS === 'web') return false;
+  const atual = await Notifications.getPermissionsAsync();
+  return !atual.granted && !atual.canAskAgain;
+}
+
 export async function carregarLembretes(db: SQLiteDatabase): Promise<ConfiguracaoLembretes> {
   return (await buscarConfiguracao<ConfiguracaoLembretes>(db, CHAVE_LEMBRETES)) ?? CONFIGURACAO_LEMBRETES_PADRAO;
 }
