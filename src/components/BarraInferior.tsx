@@ -9,10 +9,11 @@ import { Texto } from './ui/Texto';
 const abas: Record<string, { rotulo: string; icone: NomeIcone }> = {
   index: { rotulo: 'Hoje', icone: 'hoje' },
   ciclos: { rotulo: 'Ciclos', icone: 'ciclos' },
+  concursos: { rotulo: 'Concursos', icone: 'concursos' },
   estatisticas: { rotulo: 'Estatísticas', icone: 'estatisticas' },
 };
 
-export function BarraInferior({ state, navigation }: BottomTabBarProps) {
+export function BarraInferior({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const { bottom } = useSafeAreaInsets();
   return (
     <View style={[estilos.barra, { paddingBottom: Math.max(bottom, 26) }]}>
@@ -22,8 +23,8 @@ export function BarraInferior({ state, navigation }: BottomTabBarProps) {
         const atual = state.index === indice;
         const cor = atual ? cores.accentInk : cores.ink2;
         const aoPressionar = () => {
-          const evento = navigation.emit({ type: 'tabPress', target: rota.key, canPreventDefault: true });
-          if (!atual && !evento.defaultPrevented) navigation.navigate(rota.name, rota.params);
+          const evento = emitter.emit({ type: 'tabPress', target: rota.key, canPreventDefault: true });
+          if (!atual && !evento.defaultPrevented) navigateToTab(rota.key);
         };
         return (
           <Pressable
@@ -51,15 +52,16 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 6,
-    paddingHorizontal: 40,
+    paddingHorizontal: 12,
     backgroundColor: cores.surface,
     borderTopWidth: 1,
     borderTopColor: cores.line,
   },
   link: {
+    flex: 1,
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: raio.control,
   },

@@ -44,6 +44,10 @@ src/
 └── utils/
 ```
 
+## Créditos
+
+A aba Concursos consome o JSON público do projeto [bishoppython/oconcurseiro](https://github.com/bishoppython/oconcurseiro) (dados de PCI Concursos e ConcursosNoBrasil, sem licença declarada). O app só lê o arquivo publicado.
+
 ## Comandos úteis
 
 ```bash

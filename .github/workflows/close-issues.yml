@@ -1,0 +1,72 @@
+name: Close issues on merge to develop
+
+# O GitHub só fecha issues automaticamente quando o merge vai para a branch
+# padrão (main). Este workflow fecha as issues vinculadas ao PR mergeado na develop.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  close-issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner,
+              repo,
+              pull_number: pr.number,
+            });
+
+            // Fontes: branch (feat/issue-7-ciclo), título/corpo do PR
+            // (Closes #7) e mensagens de commit (feat(#7): ...).
+            const sources = [
+              pr.head.ref,
+              pr.title,
+              pr.body ?? '',
+              ...commits.map((c) => c.commit.message),
+            ].join('\n');
+
+            const numbers = new Set();
+            for (const m of sources.matchAll(/issue[-_/ ]?#?(\d+)/gi)) numbers.add(Number(m[1]));
+            for (const m of sources.matchAll(/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi)) numbers.add(Number(m[1]));
+            for (const m of sources.matchAll(/\(#(\d+)\)/g)) numbers.add(Number(m[1]));
+
+            // Ignora o próprio PR e o que não é issue.
+            numbers.delete(pr.number);
+
+            for (const issue_number of numbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+                if (issue.pull_request || issue.state === 'closed') continue;
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: `Fechada automaticamente pelo merge do PR #${pr.number} na \`develop\`.`,
+                });
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+                core.info(`Issue #${issue_number} fechada.`);
+              } catch (error) {
+                core.warning(`Não foi possível fechar #${issue_number}: ${error.message}`);
+              }
+            }

@@ -5,13 +5,15 @@ import { cores } from '@/constants/tema';
 export type NomeIcone =
   | 'hoje'
   | 'ciclos'
+  | 'concursos'
   | 'estatisticas'
   | 'usuarios'
   | 'fechar'
   | 'alca'
   | 'voltar'
   | 'setaAbaixo'
-  | 'mais';
+  | 'mais'
+  | 'sino';
 
 type Props = {
   nome: NomeIcone;
@@ -31,6 +33,7 @@ export function Icone({ nome, cor = cores.ink2, tamanho = 20 }: Props) {
           <Path d="M10 3V10L15 14" stroke={cor} strokeWidth={2} />
         </>
       )}
+      {nome === 'concursos' && <Path d="M3 7H17V16H3V7ZM7 7V5H13V7M3 11H17" strokeWidth={2} {...traco} />}
       {nome === 'estatisticas' && (
         <Path d="M4 16V9M10 16V4M16 16V11" strokeWidth={2.5} {...traco} />
       )}
@@ -51,6 +54,7 @@ export function Icone({ nome, cor = cores.ink2, tamanho = 20 }: Props) {
       {nome === 'voltar' && <Path d="M12 4L6 10L12 16" strokeWidth={2} {...traco} />}
       {nome === 'setaAbaixo' && <Path d="M6 8L10 12L14 8" strokeWidth={1.8} {...traco} />}
       {nome === 'mais' && <Path d="M10 4V16M4 10H16" strokeWidth={2} {...traco} />}
+      {nome === 'sino' && <Path d="M15 8A5 5 0 0 0 5 8C5 14 3 14 3 15H17C17 14 15 14 15 8M8 18H12" strokeWidth={1.8} {...traco} />}
     </Svg>
   );
 }

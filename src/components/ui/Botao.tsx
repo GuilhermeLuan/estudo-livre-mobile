@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { cores, espaco, raio, sombras } from '@/constants/tema';
+import { cores, espaco, raio } from '@/constants/tema';
 import { Texto } from './Texto';
 
 export type VarianteBotao = 'primario' | 'secundario' | 'discreto' | 'perigo';
@@ -55,7 +55,13 @@ export function Botao({
         style,
       ]}
     >
-      <Texto estilo={estiloTexto} cor={variante === 'discreto' && tom === 'perigo' ? cores.red : corTexto[variante]}>
+      <Texto
+        estilo={estiloTexto}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        cor={variante === 'discreto' && tom === 'perigo' ? cores.red : corTexto[variante]}
+      >
         {rotulo}
       </Texto>
     </Pressable>
@@ -74,7 +80,6 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.accent,
     borderWidth: 1,
     borderColor: cores.accent,
-    ...sombras.botaoPrimario,
   },
   secundario: {
     backgroundColor: cores.surface2,
