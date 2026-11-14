@@ -46,6 +46,12 @@ const MIGRACOES: string[] = [
     pausado_em INTEGER
   );
   `,
+  `
+  CREATE TABLE configuracoes (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
+  );
+  `,
 ];
 
 /** Abre o banco no estado mais recente. Idempotente: reabrir o app não recria nem apaga dados. */

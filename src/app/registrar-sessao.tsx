@@ -28,6 +28,7 @@ import {
   registrarEstudo,
 } from '@/services/database';
 import { useToast } from '@/store/toast';
+import { cancelarAvisoCronometro } from '@/services/lembretes';
 import { useCronometro } from '@/store/cronometro';
 import type { Ciclo, TipoEstudo } from '@/types/banco';
 import { formatarDataBR, formatarDataISO } from '@/utils/data';
@@ -173,6 +174,7 @@ export default function RegistrarSessao() {
         anotacao: form.anotacao.trim() || null,
       }, true);
       limpar();
+      await cancelarAvisoCronometro(db).catch(() => undefined);
       mostrarToast(voltaFechou ? `Estudo registrado. Volta ${atual.voltaAtual} concluída!` : 'Estudo registrado');
       router.back();
     } catch {
