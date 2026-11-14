@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { cancelarAvisoCronometro, reagendarAvisoCronometro } from '@/services/lembretes';
 import { buscarSessao, descartarSessao, salvarSessao } from '@/services/database/cronometro';
 import type { SessaoCronometro } from '@/types/banco';
 import { tempoDecorridoMs } from '@/utils/tempoCronometro';
@@ -9,6 +10,11 @@ jest.mock('@/services/database/cronometro', () => ({
   buscarSessao: jest.fn(),
   salvarSessao: jest.fn(),
   descartarSessao: jest.fn(),
+}));
+
+jest.mock('@/services/lembretes', () => ({
+  reagendarAvisoCronometro: jest.fn(),
+  cancelarAvisoCronometro: jest.fn(),
 }));
 
 const db = {} as SQLiteDatabase;
@@ -51,4 +57,15 @@ it('mantém uma única sessão ligada ao ciclo onde começou', async () => {
   expect(persistida?.cicloId).toBe(7);
   await useCronometro.getState().descartar(db);
   expect(persistida).toBeNull();
+});
+
+it('agenda o aviso ao iniciar/retomar e cancela ao pausar e descartar', async () => {
+  await useCronometro.getState().iniciar(db, 7);
+  expect(reagendarAvisoCronometro).toHaveBeenCalledTimes(1);
+  await useCronometro.getState().pausar(db);
+  expect(cancelarAvisoCronometro).toHaveBeenCalledTimes(1);
+  await useCronometro.getState().retomar(db);
+  expect(reagendarAvisoCronometro).toHaveBeenCalledTimes(2);
+  await useCronometro.getState().descartar(db);
+  expect(cancelarAvisoCronometro).toHaveBeenCalledTimes(2);
 });

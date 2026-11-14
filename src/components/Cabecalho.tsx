@@ -1,7 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { cores, espaco, raio } from '@/constants/tema';
+import { Icone } from './ui/Icone';
 import { Texto } from './ui/Texto';
 
 export function Marca() {
@@ -23,10 +25,23 @@ export function Marca() {
   );
 }
 
-export function Cabecalho() {
+type Props = { lembreteAtivo?: boolean; mostrarSino?: boolean };
+
+export function Cabecalho({ lembreteAtivo = false, mostrarSino = true }: Props) {
   return (
     <View style={estilos.cabecalho}>
       <Marca />
+      {mostrarSino ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir lembretes"
+          onPress={() => router.push('/lembretes' as never)}
+          style={estilos.sino}
+        >
+          <Icone nome="sino" />
+          {lembreteAtivo ? <View style={estilos.indicador} /> : null}
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -34,7 +49,9 @@ export function Cabecalho() {
 const estilos = StyleSheet.create({
   cabecalho: {
     height: 54,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: espaco[16],
     paddingVertical: espaco[10],
     backgroundColor: cores.paper,
@@ -50,4 +67,6 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.accent,
     borderRadius: raio.control,
   },
+  sino: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19 },
+  indicador: { position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: cores.green, borderWidth: 1, borderColor: cores.paper },
 });
