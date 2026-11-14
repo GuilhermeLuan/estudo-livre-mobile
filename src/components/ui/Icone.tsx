@@ -5,6 +5,7 @@ import { cores } from '@/constants/tema';
 export type NomeIcone =
   | 'hoje'
   | 'ciclos'
+  | 'concursos'
   | 'estatisticas'
   | 'usuarios'
   | 'fechar'
@@ -32,6 +33,7 @@ export function Icone({ nome, cor = cores.ink2, tamanho = 20 }: Props) {
           <Path d="M10 3V10L15 14" stroke={cor} strokeWidth={2} />
         </>
       )}
+      {nome === 'concursos' && <Path d="M3 7H17V16H3V7ZM7 7V5H13V7M3 11H17" strokeWidth={2} {...traco} />}
       {nome === 'estatisticas' && (
         <Path d="M4 16V9M10 16V4M16 16V11" strokeWidth={2.5} {...traco} />
       )}

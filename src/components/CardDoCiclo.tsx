@@ -7,7 +7,6 @@ import type { CicloComProgresso } from '@/hooks/useDadosHoje';
 import { useCronometro } from '@/store/cronometro';
 import { useToast } from '@/store/toast';
 import { estadoDaMateria, formatarHoras, pluralizar } from '@/utils/hoje';
-import { BrilhoDisco } from './BrilhoDisco';
 import { DiscoCiclo } from './DiscoCiclo';
 import { LinhaMateria } from './LinhaMateria';
 import { Botao } from './ui/Botao';
@@ -28,7 +27,6 @@ export function CardDoCiclo({ ciclo, progresso, onAbrirCiclo }: Props) {
   return (
     <View style={estilos.card}>
       <View style={estilos.hero}>
-        <BrilhoDisco />
         <DiscoCiclo
           etapas={progresso.etapas}
           proximaEtapaId={proxima?.id ?? null}

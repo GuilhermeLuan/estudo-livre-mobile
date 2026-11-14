@@ -48,7 +48,7 @@ export type Estatisticas = {
 };
 
 /** Interpreta datas civis sem usar o fuso horário do dispositivo. */
-function dataEmDias(data: string): number | null {
+export function dataEmDias(data: string): number | null {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data);
   if (!partes) return null;
 

@@ -9,6 +9,7 @@ import { Texto } from './ui/Texto';
 const abas: Record<string, { rotulo: string; icone: NomeIcone }> = {
   index: { rotulo: 'Hoje', icone: 'hoje' },
   ciclos: { rotulo: 'Ciclos', icone: 'ciclos' },
+  concursos: { rotulo: 'Concursos', icone: 'concursos' },
   estatisticas: { rotulo: 'Estatísticas', icone: 'estatisticas' },
 };
 
@@ -51,15 +52,16 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 6,
-    paddingHorizontal: 40,
+    paddingHorizontal: 12,
     backgroundColor: cores.surface,
     borderTopWidth: 1,
     borderTopColor: cores.line,
   },
   link: {
+    flex: 1,
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: raio.control,
   },
