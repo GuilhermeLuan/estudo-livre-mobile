@@ -5,3 +5,4 @@ export * from './etapas';
 export * from './registros';
 export * from './cronometro';
 export * from './voltas';
+export * from './exemplo';
