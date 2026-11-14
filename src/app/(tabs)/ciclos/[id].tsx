@@ -21,6 +21,7 @@ import {
   iniciarNovaVolta,
   listarEtapas,
   listarRegistrosDoCiclo,
+  reordenarEtapas,
   renomearCiclo,
 } from '@/services/database';
 import type { Ciclo as CicloTipo, Etapa, Registro } from '@/types/banco';
@@ -213,6 +214,14 @@ export default function Ciclo() {
                 minutos={e.minutos}
                 aberto={aberta === e.id}
                 ocupado={ocupado}
+                onArrastar={(n) => {
+                  const ids = etapas.map((x) => x.id);
+                  const para = Math.max(0, Math.min(ids.length - 1, i + n));
+                  if (para === i) return;
+                  ids.splice(para, 0, ...ids.splice(i, 1));
+                  setEtapas(ids.map((id) => etapas.find((x) => x.id === id)!));
+                  executar(() => reordenarEtapas(db, cicloId, ids), 'Não foi possível reordenar as etapas');
+                }}
                 onAbrir={() => setAberta(e.id)}
                 onFechar={() => setAberta(null)}
                 onSalvar={(materia, minutos) =>

@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ToastHost } from '@/components/ui/ToastHost';
 import { cores } from '@/constants/tema';
@@ -34,6 +35,7 @@ export default function RootLayout() {
   if (!carregadas && !erro) return null;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SQLiteProvider databaseName={NOME_BANCO} onInit={migrarBanco}>
       <StatusBar style="light" />
       <Stack
@@ -60,5 +62,6 @@ export default function RootLayout() {
       </Stack>
       <ToastHost />
     </SQLiteProvider>
+    </GestureHandlerRootView>
   );
 }
