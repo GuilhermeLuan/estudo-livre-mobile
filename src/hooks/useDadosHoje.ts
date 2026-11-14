@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 
 import { listarCiclos, listarEtapas, listarRegistrosDoCiclo } from '@/services/database';
 import { useToast } from '@/store/toast';
+import { useVersaoDados } from '@/store/versaoDados';
 import type { Ciclo } from '@/types/banco';
 import { calcularProgressoVolta, type ProgressoVolta } from '@/utils/progresso';
 
@@ -45,6 +46,7 @@ async function carregarDados(db: SQLiteDatabase): Promise<DadosHoje> {
 export function useDadosHoje(): DadosHoje | null {
   const db = useSQLiteContext();
   const mostrarToast = useToast((s) => s.mostrar);
+  const versao = useVersaoDados((s) => s.versao);
   const [dados, setDados] = useState<DadosHoje | null>(null);
 
   useFocusEffect(
@@ -60,7 +62,9 @@ export function useDadosHoje(): DadosHoje | null {
       return () => {
         montado = false;
       };
-    }, [db, mostrarToast]),
+    // versao só força recarregar depois dos dados de exemplo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [db, mostrarToast, versao]),
   );
 
   return dados;
