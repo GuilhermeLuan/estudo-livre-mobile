@@ -12,6 +12,8 @@ Principais funcionalidades:
 
 Projeto acadêmico feito com Expo (SDK 57), React Native, Expo Router, Zustand e expo-sqlite.
 
+Apresentação do projeto: [Figma Deck](https://www.figma.com/deck/sLuxqi5JrKo5AQ3bwCymsB)
+
 ## Como rodar
 
 Pré-requisitos: Node.js e o app **Expo Go** no celular, ou um emulador configurado.
